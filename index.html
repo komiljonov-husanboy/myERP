@@ -13,6 +13,7 @@
             --secondary: #6366f1;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --dark: #1e293b;
             --bg: #f1f5f9;
             --white: #ffffff;
@@ -66,6 +67,13 @@
             border: 1px solid #f1f5f9; position: relative; transition: 0.3s;
         }
         .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+
+        /* Progress Bar Styles */
+        .progress-container {
+            width: 100%; height: 6px; background: #eee; border-radius: 10px;
+            margin: 15px 0 5px 0; overflow: hidden;
+        }
+        .progress-bar { height: 100%; transition: width 0.5s ease; border-radius: 10px; }
 
         .badge { padding: 5px 12px; border-radius: 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
         .badge-pending { background: #fff7ed; color: #ea580c; }
@@ -224,15 +232,13 @@
             updateDate();
             render();
             renderLinks();
-            setInterval(checkSystem, 5000);
+            setInterval(render, 30000); // Har 30 soniyada progress barni yangilash
         };
 
         function formatFullDate(dateStr) {
             if(!dateStr) return "Belgilanmagan";
             const d = new Date(dateStr);
-            const soat = d.getHours().toString().padStart(2, '0');
-            const daqiqa = d.getMinutes().toString().padStart(2, '0');
-            return `${d.getDate()}-${oylar[d.getMonth()]}, ${soat}:${daqiqa}`;
+            return `${d.getDate()}-${oylar[d.getMonth()]}, ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
         }
 
         function switchTab(tabId, el) {
@@ -269,9 +275,29 @@
             tasks.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
 
             tasks.forEach(t => {
-                const isOver = new Date() > new Date(t.deadline);
+                const now = new Date();
+                const deadline = new Date(t.deadline);
+                const createdAt = new Date(t.id); // Vazifa ochilgan vaqt
+                const isOver = now > deadline;
+
+                // Progress hisoblash
+                let progressPercent = 0;
+                let progressColor = 'var(--success)';
+                
+                if (!isOver && t.status !== 'completed') {
+                    const total = deadline - createdAt;
+                    const remaining = deadline - now;
+                    progressPercent = Math.max(0, Math.min(100, (remaining / total) * 100));
+                    
+                    if(progressPercent < 25) progressColor = 'var(--danger)';
+                    else if(progressPercent < 50) progressColor = 'var(--warning)';
+                } else if (t.status === 'completed') {
+                    progressPercent = 100;
+                    progressColor = 'var(--success)';
+                }
+
                 let badge = `<span class="badge badge-pending">⏳ Kutilmoqda</span>`;
-                if(t.status === 'completed') badge = `<span class="badge badge-success">✅ Qabul qilindi</span>`;
+                if(t.status === 'completed') badge = `<span class="badge badge-success">✅ Bajarildi</span>`;
                 else if(isOver) badge = `<span class="badge badge-failed">❌ Muddati o'tdi</span>`;
 
                 const card = document.createElement('div');
@@ -284,8 +310,12 @@
                     <h3 style="margin-top:15px">${t.title}</h3>
                     <p style="color:#64748b; font-size:14px; margin-top:8px">${t.desc}</p>
                     
-                    <div style="margin-top:20px; font-size:13px; font-weight:700; color:var(--dark)">
-                        <i class="fa-regular fa-clock"></i> Muddat: ${formatFullDate(t.deadline)}
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${progressPercent}%; background: ${progressColor}"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#64748b">
+                        <span>Qolgan vaqt: ${isOver ? '0%' : Math.round(progressPercent)+'%'}</span>
+                        <span>Muddati: ${formatFullDate(t.deadline)}</span>
                     </div>
 
                     ${t.status === 'pending' && !isOver ? `<button class="btn btn-primary student-view" style="width:100%; margin-top:20px" onclick="openSubmit(${t.id})">Topshirish</button>` : ''}
@@ -306,15 +336,13 @@
             const title = document.getElementById('t-title').value;
             const desc = document.getElementById('t-desc').value;
             const deadline = document.getElementById('t-deadline').value;
-            if(!title || !deadline) return alert("Sarlavha va vaqtni belgilang!");
+            if(!title || !deadline) return alert("To'ldiring!");
             tasks.push({ id: Date.now(), title, desc, deadline, status: 'pending', submission: null });
             save();
             closeModal('addModal');
         }
 
-        function deleteTask(id) {
-            if(confirm("O'chirilsinmi?")) { tasks = tasks.filter(x => x.id !== id); save(); }
-        }
+        function deleteTask(id) { if(confirm("O'chirilsinmi?")) { tasks = tasks.filter(x => x.id !== id); save(); } }
 
         function renderLinks() {
             const container = document.getElementById('links-container');
@@ -324,9 +352,7 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center">
-                        <a href="${l.url}" target="_blank" class="source-link">
-                            <i class="fa-solid fa-globe"></i> ${l.name}
-                        </a>
+                        <a href="${l.url}" target="_blank" class="source-link"><i class="fa-solid fa-globe"></i> ${l.name}</a>
                         ${isAdmin ? `<i class="fa-solid fa-circle-xmark" style="color:var(--danger); cursor:pointer" onclick="deleteLink(${l.id})"></i>` : ''}
                     </div>
                 `;
@@ -359,14 +385,12 @@
             const name = document.getElementById('sub-name').value;
             const fileInput = document.getElementById('sub-file');
             if(!name) return alert("Ismingizni yozing!");
-
             let fileData = null, fileName = null;
             if(fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 fileName = file.name;
                 fileData = await toBase64(file);
             }
-
             const idx = tasks.findIndex(x => x.id == id);
             tasks[idx].status = 'completed';
             tasks[idx].submission = { name, fileName, fileData };
@@ -385,11 +409,6 @@
             document.getElementById('s-pending').innerText = tasks.filter(x => x.status === 'pending' && new Date() < new Date(x.deadline)).length;
             document.getElementById('s-done').innerText = tasks.filter(x => x.status === 'completed').length;
             document.getElementById('s-fail').innerText = tasks.filter(x => x.status === 'pending' && new Date() > new Date(x.deadline)).length;
-        }
-        function checkSystem() {
-            let changed = false;
-            tasks.forEach(t => { if(t.status === 'pending' && new Date() > new Date(t.deadline)) changed = true; });
-            if(changed) render();
         }
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
