@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -24,12 +23,13 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { background-color: var(--bg); color: var(--dark); height: 100vh; display: flex; overflow: hidden; }
 
-        /* Sidebar */
+        /* Sidebar Responsive */
         .sidebar {
             width: var(--sidebar-width); background: var(--white);
             display: flex; flex-direction: column; border-right: 1px solid #e2e8f0;
-            padding: 30px 20px; transition: 0.3s;
+            padding: 30px 20px; transition: 0.3s; z-index: 100;
         }
+        
         .logo { font-size: 24px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
         .nav-link {
             padding: 12px 16px; border-radius: 12px; color: #64748b; font-weight: 600; 
@@ -39,7 +39,7 @@
         .sidebar-footer { margin-top: auto; padding: 20px; border-radius: 16px; background: #f1f5f9; }
 
         /* Main Content */
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
         .section { display: none; }
         .section.active { display: block; }
 
@@ -57,30 +57,28 @@
         }
         .stat-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 
-        /* Task Tabs - NEW */
         .task-tabs {
             display: flex; gap: 10px; margin-bottom: 20px; padding: 5px;
-            background: #e2e8f0; border-radius: 14px; width: fit-content;
+            background: #e2e8f0; border-radius: 14px; width: fit-content; overflow-x: auto;
         }
         .tab-btn {
             padding: 10px 20px; border-radius: 10px; border: none; font-weight: 700;
-            cursor: pointer; transition: 0.3s; color: #64748b; background: transparent;
+            cursor: pointer; transition: 0.3s; color: #64748b; background: transparent; white-space: nowrap;
         }
-        .tab-btn.active { background: var(--white); color: var(--primary); shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .tab-btn.active { background: var(--white); color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* Grid */
         .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
         .card {
             background: var(--white); border-radius: 24px; padding: 25px;
-            border: 1px solid #f1f5f9; transition: 0.3s; display: flex; flex-direction: column;
+            border: 1px solid #f1f5f9; transition: 0.3s; display: flex; flex-direction: column; position: relative;
         }
         .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
 
-        /* Progress Bar */
+        .posted-date { font-size: 10px; color: #94a3b8; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+
         .progress-container { width: 100%; height: 8px; background: #f1f5f9; border-radius: 10px; margin: 15px 0 8px 0; overflow: hidden; }
         .progress-bar { height: 100%; transition: width 0.5s ease; border-radius: 10px; }
 
-        /* UI Elements */
         .badge { padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
         .badge-pending { background: #fff7ed; color: #ea580c; }
         .badge-success { background: #ecfdf5; color: #10b981; }
@@ -94,13 +92,25 @@
             display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
             backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;
         }
-        .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+        .modal-content { background: white; padding: 30px; border-radius: 24px; width: 95%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
 
         input, textarea { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; margin: 10px 0 20px 0; outline: none; background: #f8fafc; }
         
         .admin-view { display: none; }
         body.is-admin .admin-view { display: block; }
         body.is-admin .student-view { display: none; }
+
+        /* Media Queries for Mobile */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow: auto; height: auto; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; padding: 15px; }
+            .logo { margin-bottom: 15px; }
+            .nav-link { margin-bottom: 5px; font-size: 14px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .main-content { padding: 15px; }
+            .header-panel { flex-direction: column; text-align: center; gap: 10px; }
+            .task-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body id="body">
@@ -189,6 +199,7 @@
             <label style="font-size: 12px; font-weight: bold;">Deadline:</label>
             <input type="datetime-local" id="t-deadline">
             <button class="btn btn-primary" style="width: 100%;" onclick="addTask()">E'lon qilish</button>
+            <button class="btn" style="width:100%; background:none;" onclick="closeModal('addModal')">Yopish</button>
         </div>
     </div>
 
@@ -196,7 +207,7 @@
         <div class="modal-content">
             <h2>Yangi manba</h2><br>
             <input type="text" id="link-name" placeholder="Nomi">
-            <input type="url" id="link-url" placeholder="URL (https://...)">
+            <input type="url" id="link-url" placeholder="URL">
             <button class="btn btn-primary" style="width: 100%;" onclick="addLink()">Saqlash</button>
             <button class="btn" style="width:100%; background:none;" onclick="closeModal('addLinkModal')">Yopish</button>
         </div>
@@ -209,6 +220,7 @@
             <input type="text" id="sub-name" placeholder="Ism Familiyangiz">
             <input type="file" id="sub-file">
             <button class="btn btn-primary" style="width: 100%;" onclick="submitTask()">Yuborish</button>
+            <button class="btn" style="width:100%; background:none;" onclick="closeModal('submitModal')">Yopish</button>
         </div>
     </div>
 
@@ -227,6 +239,17 @@
             renderLinks();
             setInterval(render, 60000); 
         };
+
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            if (seconds < 60) return "Hozirgina";
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} daqiqa oldin`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} soat oldin`;
+            const days = Math.floor(hours / 24);
+            return `${days} kun oldin`;
+        }
 
         function filterTasks(type, el) {
             currentFilter = type;
@@ -281,10 +304,10 @@
                 if(currentFilter === 'pending') return t.status === 'pending' && !isOver;
             });
 
-            filtered.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+            filtered.sort((a,b) => b.id - a.id); // Eng yangilari birinchi
 
             if(filtered.length === 0) {
-                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #64748b;">Bu bo'limda vazifalar yo'q.</div>`;
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #64748b;">Vazifalar topilmadi.</div>`;
                 return;
             }
 
@@ -310,6 +333,9 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
+                    <div class="posted-date">
+                        <i class="fa-regular fa-calendar-plus"></i> Berilgan: ${formatFullDate(t.id)} (${timeAgo(t.id)})
+                    </div>
                     <div style="display:flex; justify-content:space-between; align-items:center">
                         ${badge}
                         ${isAdmin ? `<i class="fa-solid fa-trash" style="color:var(--danger); cursor:pointer" onclick="deleteTask(${t.id})"></i>` : ''}
@@ -321,8 +347,8 @@
                         <div class="progress-bar" style="width: ${progressPercent}%; background: ${progressColor}"></div>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#94a3b8">
-                        <span>Vaqt: ${Math.round(progressPercent)}%</span>
-                        <span><i class="fa-regular fa-clock"></i> ${formatFullDate(t.deadline)}</span>
+                        <span>Qolgan vaqt: ${Math.round(progressPercent)}%</span>
+                        <span><i class="fa-regular fa-clock"></i> Deadline: ${formatFullDate(t.deadline)}</span>
                     </div>
 
                     ${t.status === 'pending' && !isOver ? `<button class="btn btn-primary student-view" style="width:100%; margin-top:15px" onclick="openSubmit(${t.id})">Topshirish</button>` : ''}
@@ -342,13 +368,17 @@
             const title = document.getElementById('t-title').value;
             const desc = document.getElementById('t-desc').value;
             const deadline = document.getElementById('t-deadline').value;
-            if(!title || !deadline) return alert("To'ldiring!");
+            if(!title || !deadline) return alert("Barcha maydonlarni to'ldiring!");
             tasks.push({ id: Date.now(), title, desc, deadline, status: 'pending', submission: null });
             save();
             closeModal('addModal');
+            // Formani tozalash
+            document.getElementById('t-title').value = '';
+            document.getElementById('t-desc').value = '';
+            document.getElementById('t-deadline').value = '';
         }
 
-        function deleteTask(id) { if(confirm("O'chirilsinmi?")) { tasks = tasks.filter(x => x.id !== id); save(); } }
+        function deleteTask(id) { if(confirm("Haqiqatan ham o'chirmoqchimisiz?")) { tasks = tasks.filter(x => x.id !== id); save(); } }
 
         function renderLinks() {
             const container = document.getElementById('links-container');
@@ -390,7 +420,7 @@
             const id = document.getElementById('sub-id').value;
             const name = document.getElementById('sub-name').value;
             const fileInput = document.getElementById('sub-file');
-            if(!name) return alert("Ismingizni yozing!");
+            if(!name) return alert("Ismingizni kiriting!");
             let fileData = null, fileName = null;
             if(fileInput.files.length > 0) {
                 const file = fileInput.files[0];
